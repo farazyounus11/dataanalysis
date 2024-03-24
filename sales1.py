@@ -127,7 +127,7 @@ if 'selected_file' in st.session_state:
 
     # Drop the index
     sorted_grouped_sum_df.reset_index(drop=True, inplace=True)
-
+    sorted_grouped_sum_df.index += 1
     # Create three columns
     left_column, middle_column, right_column = st.columns(3)
 
@@ -150,7 +150,7 @@ if 'selected_file' in st.session_state:
         address_grouped_sum_df = address_grouped_sum_df.sort_values(by='Price Each', ascending=False)
         address_grouped_sum_df['Price Each'] = address_grouped_sum_df['Price Each'].round()
         address_grouped_sum_df.reset_index(drop=True, inplace=True)
-
+        address_grouped_sum_df.index += 1
         st.write(address_grouped_sum_df)
 
     
