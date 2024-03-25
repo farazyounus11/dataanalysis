@@ -143,17 +143,25 @@ if 'selected_file' in st.session_state:
     address_grouped_sum_df['Price Each'] = address_grouped_sum_df['Price Each'].round()
     address_grouped_sum_df.reset_index(drop=True, inplace=True)
 
+    # Round the values to whole numbers
+    sorted_grouped_sum_df['Price Each'] = sorted_grouped_sum_df['Price Each'].astype(int)
+    address_grouped_sum_df['Price Each'] = address_grouped_sum_df['Price Each'].astype(int)
+
     max_cell_length = 16  # Adjust this value as needed
     formatted_sorted_grouped_sum_df = format_dataframe(sorted_grouped_sum_df, max_cell_length)
     formatted_address_grouped_sum_df = format_dataframe(address_grouped_sum_df, max_cell_length)
 
+    # Display the DataFrames with rounded whole numbers
     left_column, middle_column, right_column = st.columns(3)
+
     with left_column:
         st.markdown("### Big ticket items")
         st.write(formatted_sorted_grouped_sum_df)
+
     with middle_column:
         st.markdown("### Most sold items")
         st.write(df.Product.value_counts())
+
     with right_column:
         st.markdown("### Valued Customers")
         st.write(formatted_address_grouped_sum_df)
