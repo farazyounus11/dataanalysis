@@ -25,9 +25,7 @@ else:
 if 'selected_file' in st.session_state:
     # Reading the selected CSV file from session state
     df = pd.read_csv(st.session_state['selected_file'])
-    
     df.rename(columns={'Quantity Ordered': 'Count'}, inplace=True)
-    zip_code_pattern = r'\b\d{5}(?:-\d{4})?\b'
 
 
     ## Code helps get total
@@ -35,6 +33,8 @@ if 'selected_file' in st.session_state:
     df['Price Each'] = pd.to_numeric(df['Price Each'], errors='coerce')
     df['Total'] = df['Count'] * df['Price Each']
 
+
+    zip_code_pattern = r'\b\d{5}(?:-\d{4})?\b'
     df['Zip'] = df['Purchase Address'].apply(lambda x: re.search(zip_code_pattern, str(x)).group() if pd.notnull(x) and re.search(zip_code_pattern, str(x)) else None)
     df['Date'] = pd.to_datetime(df['Order Date'], format='%m/%d/%y %H:%M', errors='coerce')
     df = df.drop(columns=['Order Date'])
@@ -46,8 +46,7 @@ if 'selected_file' in st.session_state:
         "Filter the Hour of Day",
         0, 24, (0, 24),
         step=1,  # Hour steps
-        format="%d hours"
-    )
+        format="%d hours")
 
     # Further filtering DataFrame based on selected hour range
     df['Hour'] = df['Date'].dt.hour
@@ -76,9 +75,37 @@ if 'selected_file' in st.session_state:
     st.markdown("## Filtered data")    
     st.write(df)
 
+    daily_sales = df.groupby('Day')['Total'].sum()
+    average_daily_sales = daily_sales.mean()
+    std_daily_sales = daily_sales.std()
+
+    # Calculate average hourly sales
+    hourly_sales = df.groupby('Hour')['Total'].sum()
+    average_hourly_sales = hourly_sales.mean()
+    std_hourly_sales = hourly_sales.std()
+
+    # Create two columns
+    col1, col2 = st.columns(2)
+    with col1:
+        st.metric("Average Daily Sales", average_daily_sales.round(-1), f"Std Dev: {std_daily_sales.round(-1)}")
+    with col2:
+        st.metric("Average Hourly Sales", average_hourly_sales.round(-1), f"Std Dev: {std_hourly_sales.round(-1)}")
+
+    st.markdown("### Notice the high Std Dev of Hourly sales. You will see that in the plot!")    
+
+
+
+    st.markdown("## Plot of Daily Sales")
+    st.line_chart(daily_sales)
+
+    st.markdown("## Plot of Hourly Sales")    
+    st.line_chart(hourly_sales)
+    st.markdown("#### The above plot shows that it's optimized to have call center open after 8A.M.!!")    
+
+
+
     st.markdown("## Important Zip Codes")    
 
-    # Group by 'Zip' column and calculate the sum of 'Total' and 'Count' columns separately
     total_sales_df = df.groupby('Zip')['Total'].sum().reset_index().sort_values(by='Total', ascending=False)
     total_count_df = df.groupby('Zip')['Count'].sum().reset_index().sort_values(by='Count', ascending=False)
 
@@ -94,72 +121,47 @@ if 'selected_file' in st.session_state:
     total_count_df.reset_index(drop=True, inplace=True)
     total_count_df.index += 1 
     total_sales_df.index += 1
-
-
     col1, col2 = st.columns(2)
-
-    # Display total sales by zip code in the first column
     with col1:
         st.write("Total Sales by Zip:")
         st.write(total_sales_df)
-
-    # Display total count by zip code in the second column
     with col2:
-        st.write("Total Number Sold by Zip:")
+        st.write("Total Numbers Sold by Zip:")
         st.write(total_count_df)
 
-
-    daily_sales = df.groupby('Day')['Total'].sum()
-
-    st.markdown("## Plot of Daily Sales")    
-    st.line_chart(daily_sales)
-
-
-
-# Group by 'Product' column and calculate the sum of 'Price Each'
     grouped_sum_df = df.groupby('Product')['Price Each'].sum().reset_index()
-
-    # Sort the DataFrame by 'Price Each' in descending order
     sorted_grouped_sum_df = grouped_sum_df.sort_values(by='Price Each', ascending=False)
-
-    # Round the 'Price Each' column
     sorted_grouped_sum_df['Price Each'] = sorted_grouped_sum_df['Price Each'].round()
-
-    # Drop the index
     sorted_grouped_sum_df.reset_index(drop=True, inplace=True)
-    sorted_grouped_sum_df.index += 1
-    # Create three columns
     left_column, middle_column, right_column = st.columns(3)
 
-    # Display sorted grouped sum DataFrame and address input in the left column
     with left_column:
         st.markdown("### Big ticket items")
         st.write(sorted_grouped_sum_df)
-
-
-
-    # Display product value counts DataFrame in the middle column
     with middle_column:
         st.markdown("### Most sold items")
         st.write(df.Product.value_counts())
-
-    # Display sum of 'Price Each' grouped by 'Purchase Address' in the right column
     with right_column:
-        st.markdown("### Favorite Customers")
+        st.markdown("### Valued Customers")
         address_grouped_sum_df = df.groupby('Purchase Address')['Price Each'].sum().reset_index()
         address_grouped_sum_df = address_grouped_sum_df.sort_values(by='Price Each', ascending=False)
         address_grouped_sum_df['Price Each'] = address_grouped_sum_df['Price Each'].round()
         address_grouped_sum_df.reset_index(drop=True, inplace=True)
-        address_grouped_sum_df.index += 1
         st.write(address_grouped_sum_df)
 
     
-    st.markdown("## Filter by Product Name")
-    search_item = st.text_input("Enter Item", "")
-    filtered_df = df[df['Product'].str.contains(search_item, case=False, na=False)]
-    st.write(filtered_df)
+    def filter_dataframe(df, filter_type, search_input):
+        if filter_type == "Product Name":
+            filtered_df = df[df['Product'].str.contains(search_input, case=False, na=False)]
+        elif filter_type == "Address or ZIP":
+            filtered_df = df[df['Purchase Address'].str.contains(search_input, case=False, na=False)]
+        else:
+            filtered_df = df  # No filtering if filter_type is not recognized
+        return filtered_df
 
-    st.markdown("## Filter by Address or ZIP")
-    search_address = st.text_input("Enter Address", "")
-    filtered_df = df[df['Purchase Address'].str.contains(search_address, case=False, na=False)]
+    # Main code
+    st.markdown("## Filter Table by Product Name or Address")
+    filter_type = st.selectbox("Select Filter Type", ["Product Name", "Address or ZIP"])
+    search_input = st.text_input("Enter Search Term", "")
+    filtered_df = filter_dataframe(df, filter_type, search_input)
     st.write(filtered_df)
