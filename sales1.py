@@ -84,12 +84,18 @@ if 'selected_file' in st.session_state:
     average_hourly_sales = hourly_sales.mean()
     std_hourly_sales = hourly_sales.std()
 
+    # Round and convert to integers
+    average_daily_sales = int(round(average_daily_sales))
+    std_daily_sales = int(round(std_daily_sales))
+    average_hourly_sales = int(round(average_hourly_sales))
+    std_hourly_sales = int(round(std_hourly_sales))
+
     # Create two columns
     col1, col2 = st.columns(2)
     with col1:
-        st.metric("Average Daily Sales", average_daily_sales.round(-1), f"Std Dev: {std_daily_sales.round(-1)}")
+        st.metric("Average Daily Sales", average_daily_sales, f"Std Dev: {std_daily_sales}")
     with col2:
-        st.metric("Average Hourly Sales", average_hourly_sales.round(-1), f"Std Dev: {std_hourly_sales.round(-1)}")
+        st.metric("Average Hourly Sales", average_hourly_sales, f"Std Dev: {std_hourly_sales}")
 
     st.markdown("### Notice the high Std Dev of Hourly sales. You will see that in the plot!")    
 
@@ -104,8 +110,6 @@ if 'selected_file' in st.session_state:
 
 
 
-    st.markdown("## Important Zip Codes")    
-
     total_sales_df = df.groupby('Zip')['Total'].sum().reset_index().sort_values(by='Total', ascending=False)
     total_count_df = df.groupby('Zip')['Count'].sum().reset_index().sort_values(by='Count', ascending=False)
 
@@ -117,10 +121,17 @@ if 'selected_file' in st.session_state:
     total_sales_df['Percentage'] = (total_sales_df['Total'] / total_sales_all) * 100
     total_count_df['Percentage'] = (total_count_df['Count'] / total_count_all) * 100
 
+    # Convert total sales to integers
+    total_sales_df['Total'] = total_sales_df['Total'].astype(int)
+
+    total_sales_df['Percentage'] = total_sales_df['Percentage'].astype(int)
+    total_count_df['Percentage'] = total_count_df['Percentage'].astype(int)
+
     total_sales_df.reset_index(drop=True, inplace=True)
     total_count_df.reset_index(drop=True, inplace=True)
     total_count_df.index += 1 
     total_sales_df.index += 1
+
     col1, col2 = st.columns(2)
     with col1:
         st.write("Total Sales by Zip:")
@@ -128,6 +139,8 @@ if 'selected_file' in st.session_state:
     with col2:
         st.write("Total Numbers Sold by Zip:")
         st.write(total_count_df)
+
+
 
     def format_dataframe(df, max_cell_length):
         formatted_df = df.copy()
