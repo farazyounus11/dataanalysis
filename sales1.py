@@ -7,7 +7,7 @@ import re
 st.set_page_config(layout="wide")
 st.title("Sales Data Analysis")
 st.header('By Faraz Younus | M.S. Stats & Data Science', divider='gray')
-st.header('Select month for Visualization!')
+st.markdown("### Use the Sidebar to Filter Data")    
 
 
 ## This code Imports Monthly Sales Data
@@ -72,8 +72,8 @@ if 'selected_file' in st.session_state:
     # Filter the DataFrame based on the selected price range
     df = df[(df['Price Each'] >= price_range[0]) & (df['Price Each'] <= price_range[1])]
     
-    st.markdown("## Filtered data")    
-    st.write(df)
+    #st.markdown("## Filtered data")    
+    #st.write(df)
 
     daily_sales = df.groupby('Day')['Total'].sum()
     average_daily_sales = daily_sales.mean()
@@ -81,8 +81,8 @@ if 'selected_file' in st.session_state:
 
     # Calculate average hourly sales
     hourly_sales = df.groupby('Hour')['Total'].sum()
-    average_hourly_sales = hourly_sales.mean()
-    std_hourly_sales = hourly_sales.std()
+    average_hourly_sales = hourly_sales.mean() / len(df['Date'].dt.date.unique())  # Divide by the number of unique dates
+    std_hourly_sales = hourly_sales.std() / len(df['Date'].dt.date.unique())  # Divide by the number of unique dates
 
     # Round and convert to integers
     average_daily_sales = int(round(average_daily_sales))
@@ -97,7 +97,7 @@ if 'selected_file' in st.session_state:
     with col2:
         st.metric("Average Hourly Sales", average_hourly_sales, f"Std Dev: {std_hourly_sales}")
 
-    st.markdown("### Notice the high Std Dev of Hourly sales. You will see that in the plot!")    
+    st.markdown("#### Notice the high Std Dev of Hourly sales. You will see that in the plot!")    
 
 
 
@@ -105,7 +105,7 @@ if 'selected_file' in st.session_state:
     st.line_chart(daily_sales)
 
     st.markdown("## Plot of Hourly Sales")    
-    st.line_chart(hourly_sales)
+    st.line_chart(hourly_sales/len(df['Date'].dt.date.unique()))
     st.markdown("#### The above plot shows that it's optimized to have call center open after 8A.M.!!")    
 
 
@@ -179,6 +179,25 @@ if 'selected_file' in st.session_state:
         st.markdown("### Valued Customers")
         st.write(formatted_address_grouped_sum_df)
 
+    grouped = df.groupby('Order ID')['Product'].apply(list)
+    products_bought_together = {}
+
+    for order_id, products in grouped.items():
+        product_combinations = [(products[i], products[j]) for i in range(len(products)) for j in range(i + 1, len(products))]
+        
+        for combination in product_combinations:
+            if combination in products_bought_together:
+                products_bought_together[combination] += 1
+            else:
+                products_bought_together[combination] = 1
+
+    df_products_bought_together = pd.DataFrame(products_bought_together.items(), columns=['Product Combination', 'Count'])
+    df_products_bought_together = df_products_bought_together.sort_values(by='Count', ascending=False)
+
+    st.markdown("### Top 10 Products Bought Together:")
+    st.write(df_products_bought_together.head(10))
+
+
     
     def filter_dataframe(df, filter_type, search_input):
         if filter_type == "Product Name":
@@ -190,7 +209,7 @@ if 'selected_file' in st.session_state:
         return filtered_df
 
     # Main code
-    st.markdown("## Filter Table by Product Name or Address")
+    st.markdown("## Search Data Table by Product Name or Address")
     filter_type = st.selectbox("Select Filter Type", ["Product Name", "Address or ZIP"])
     search_input = st.text_input("Enter Search Term", "")
     filtered_df = filter_dataframe(df, filter_type, search_input)
