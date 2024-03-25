@@ -129,25 +129,34 @@ if 'selected_file' in st.session_state:
         st.write("Total Numbers Sold by Zip:")
         st.write(total_count_df)
 
+    def format_dataframe(df, max_cell_length):
+        formatted_df = df.copy()
+        for column in formatted_df.columns:
+            formatted_df[column] = formatted_df[column].astype(str).str.slice(0, max_cell_length)
+        return formatted_df
     grouped_sum_df = df.groupby('Product')['Price Each'].sum().reset_index()
     sorted_grouped_sum_df = grouped_sum_df.sort_values(by='Price Each', ascending=False)
     sorted_grouped_sum_df['Price Each'] = sorted_grouped_sum_df['Price Each'].round()
     sorted_grouped_sum_df.reset_index(drop=True, inplace=True)
-    left_column, middle_column, right_column = st.columns(3)
+    address_grouped_sum_df = df.groupby('Purchase Address')['Price Each'].sum().reset_index()
+    address_grouped_sum_df = address_grouped_sum_df.sort_values(by='Price Each', ascending=False)
+    address_grouped_sum_df['Price Each'] = address_grouped_sum_df['Price Each'].round()
+    address_grouped_sum_df.reset_index(drop=True, inplace=True)
 
+    max_cell_length = 16  # Adjust this value as needed
+    formatted_sorted_grouped_sum_df = format_dataframe(sorted_grouped_sum_df, max_cell_length)
+    formatted_address_grouped_sum_df = format_dataframe(address_grouped_sum_df, max_cell_length)
+
+    left_column, middle_column, right_column = st.columns(3)
     with left_column:
         st.markdown("### Big ticket items")
-        st.write(sorted_grouped_sum_df)
+        st.write(formatted_sorted_grouped_sum_df)
     with middle_column:
         st.markdown("### Most sold items")
         st.write(df.Product.value_counts())
     with right_column:
         st.markdown("### Valued Customers")
-        address_grouped_sum_df = df.groupby('Purchase Address')['Price Each'].sum().reset_index()
-        address_grouped_sum_df = address_grouped_sum_df.sort_values(by='Price Each', ascending=False)
-        address_grouped_sum_df['Price Each'] = address_grouped_sum_df['Price Each'].round()
-        address_grouped_sum_df.reset_index(drop=True, inplace=True)
-        st.write(address_grouped_sum_df)
+        st.write(formatted_address_grouped_sum_df)
 
     
     def filter_dataframe(df, filter_type, search_input):
